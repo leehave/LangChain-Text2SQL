@@ -1,0 +1,31 @@
+{
+  "name": "langchain-chatbot",
+  "version": "1.0.0",
+  "description": "LangChainJS + AntDX Chatbot Application",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:server": "pnpm --filter server dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter web build",
+    "build:server": "pnpm --filter server build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "keywords": [
+    "langchain",
+    "anthropic",
+    "chatbot",
+    "antdx"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
