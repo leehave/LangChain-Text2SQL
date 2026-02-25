@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Layout, theme, Button, Modal, Input, message } from 'antd';
+import { useTranslation } from 'react-i18next';
+import { Layout, theme, Button, Modal, Input, message, Select } from 'antd';
 import { Conversations, Sender, Welcome, Bubble } from '@ant-design/x';
 import {
   DeleteOutlined,
@@ -16,6 +17,7 @@ import CodeHighlighter from './CodeHighlighter';
 const { Sider, Content } = Layout;
 
 function ChatInterface() {
+  const { t } = useTranslation();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -26,11 +28,14 @@ function ChatInterface() {
     currentConversationId,
     isLoading,
     streamingMessage,
+    selectedProvider,
+    availableProviders,
     loadConversations,
     sendMessage,
     createNewConversation,
     selectConversation,
     deleteConversation,
+    setSelectedProvider,
   } = useChat();
 
   const [inputValue, setInputValue] = useState('');
@@ -93,16 +98,16 @@ function ChatInterface() {
 
   const handleGenerateSql = async () => {
     if (!schemaInput.trim() || !sqlPrompt.trim()) {
-      message.warning('Please provide both schema and prompt');
+      message.warning(t('sqlModal.schemaLabel') + ' ' + t('sqlModal.promptLabel'));
       return;
     }
 
     setIsGeneratingSql(true);
     try {
-      const sql = await textToSql(schemaInput, sqlPrompt);
+      const sql = await textToSql(schemaInput, sqlPrompt, selectedProvider || undefined);
       setGeneratedSql(sql);
     } catch (error) {
-      message.error('Failed to generate SQL');
+      message.error(t('errors.sqlGenerateFailed'));
       console.error(error);
     } finally {
       setIsGeneratingSql(false);
@@ -118,7 +123,7 @@ function ChatInterface() {
   const menuConfig: ConversationsProps['menu'] = (conversation) => ({
     items: [
       {
-        label: 'Delete',
+        label: t('chat.delete'),
         key: 'delete',
         icon: <DeleteOutlined />,
         danger: true,
@@ -142,15 +147,27 @@ function ChatInterface() {
       >
         <div style={{ padding: 16, borderBottom: '1px solid #e8e8e8' }}>
           <Welcome
-            title="LangChain Chatbot"
-            description="Powered by Anthropic Claude"
+            title={t('app.title')}
+            description={t('app.description')}
           />
+          {availableProviders.length > 0 && (
+            <Select
+              value={selectedProvider || undefined}
+              onChange={(value) => setSelectedProvider(value)}
+              placeholder="选择模型"
+              style={{ marginTop: 12, width: '100%' }}
+              options={availableProviders.map((p) => ({
+                value: p.type,
+                label: p.name,
+              }))}
+            />
+          )}
           <Button
             icon={<DatabaseOutlined />}
             onClick={handleOpenSqlModal}
             style={{ marginTop: 12, width: '100%' }}
           >
-            Text to SQL
+            {t('sidebar.textToSql')}
           </Button>
         </div>
         <div style={{ padding: 8 }}>
@@ -186,8 +203,8 @@ function ChatInterface() {
               }}
             >
               <Welcome
-                title="Start a Conversation"
-                description="Type a message below to start chatting with Claude"
+                title={t('welcome.startTitle')}
+                description={t('welcome.startDescription')}
                 extra={
                   <PlusOutlined
                     onClick={createNewConversation}
@@ -288,7 +305,7 @@ function ChatInterface() {
                   onChange={setInputValue}
                   onSubmit={handleSend}
                   loading={isLoading}
-                  placeholder="Type your message..."
+                  placeholder={t('chat.placeholder')}
                   disabled={uploading}
                 />
               </div>
@@ -299,41 +316,41 @@ function ChatInterface() {
 
       {/* Text to SQL Modal */}
       <Modal
-        title="Text to SQL"
+        title={t('sqlModal.title')}
         open={isSqlModalOpen}
         onCancel={handleCloseSqlModal}
         onOk={handleGenerateSql}
-        okText="Generate SQL"
+        okText={t('sqlModal.generate')}
         confirmLoading={isGeneratingSql}
         width={800}
         destroyOnClose
       >
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-            Database Schema
+            {t('sqlModal.schemaLabel')}
           </label>
           <Input.TextArea
             value={schemaInput}
             onChange={(e) => setSchemaInput(e.target.value)}
-            placeholder="Enter your database schema (e.g., CREATE TABLE users (id INT, name VARCHAR(255), ...))"
+            placeholder={t('sqlModal.schemaPlaceholder')}
             rows={6}
           />
         </div>
         <div style={{ marginBottom: 16 }}>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-            Natural Language Query
+            {t('sqlModal.promptLabel')}
           </label>
           <Input.TextArea
             value={sqlPrompt}
             onChange={(e) => setSqlPrompt(e.target.value)}
-            placeholder="Describe what you want to query (e.g., Get all users who signed up last month)"
+            placeholder={t('sqlModal.promptPlaceholder')}
             rows={3}
           />
         </div>
         {generatedSql && (
           <div>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              Generated SQL
+              {t('sqlModal.resultLabel')}
             </label>
             <CodeHighlighter code={generatedSql} language="sql" />
           </div>

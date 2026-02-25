@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import type { Conversation, ChatMessage } from '@chatbot/shared';
+import type { ModelProvider } from '../services/api';
 
 interface ChatState {
   conversations: Conversation[];
   currentConversationId: string | null;
   isLoading: boolean;
   streamingMessage: string;
+  selectedProvider: string | null;
+  availableProviders: ModelProvider[];
   
   // Actions
   setConversations: (conversations: Conversation[]) => void;
@@ -19,6 +22,8 @@ interface ChatState {
   appendToStreamingMessage: (token: string) => void;
   clearStreamingMessage: () => void;
   updateConversationTitle: (id: string, title: string) => void;
+  setSelectedProvider: (provider: string | null) => void;
+  setAvailableProviders: (providers: ModelProvider[]) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -26,6 +31,8 @@ export const useChatStore = create<ChatState>((set) => ({
   currentConversationId: null,
   isLoading: false,
   streamingMessage: '',
+  selectedProvider: null,
+  availableProviders: [],
 
   setConversations: (conversations) => set({ conversations }),
   
@@ -77,4 +84,8 @@ export const useChatStore = create<ChatState>((set) => ({
         c.id === id ? { ...c, title } : c
       ),
     })),
+  
+  setSelectedProvider: (provider) => set({ selectedProvider: provider }),
+  
+  setAvailableProviders: (providers) => set({ availableProviders: providers }),
 }));

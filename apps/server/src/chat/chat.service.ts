@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Response } from 'express';
 import { generateId } from '@chatbot/shared';
 import type { ChatMessage, Conversation, StreamChunk } from '@chatbot/shared';
+import type { ModelProviderType } from './interfaces/llm-provider.interface';
 import { HistoryService } from './history.service';
 import { LlmService } from './llm.service';
 
@@ -16,6 +17,7 @@ export class ChatService {
     conversation: Conversation,
     message: string,
     res: Response,
+    providerType?: ModelProviderType,
   ): Promise<void> {
     const userMessage: ChatMessage = {
       id: generateId(),
@@ -37,37 +39,41 @@ export class ChatService {
       res.write(`data: ${JSON.stringify(chunk)}\n\n`);
     };
 
-    await this.llmService.streamChat(conversation.messages, {
-      onToken: (token: string) => {
-        fullResponse += token;
-        sendChunk({ type: 'token', data: token });
-      },
-      onError: (error: Error) => {
-        sendChunk({ type: 'error', data: error.message });
-        res.end();
-      },
-      onComplete: () => {
-        const assistantMessage: ChatMessage = {
-          id: assistantMessageId,
-          role: 'assistant',
-          content: fullResponse,
-          timestamp: Date.now(),
-        };
-        this.historyService.addMessage(conversation.id, assistantMessage);
+    await this.llmService.streamChat(
+      conversation.messages,
+      {
+        onToken: (token: string) => {
+          fullResponse += token;
+          sendChunk({ type: 'token', data: token });
+        },
+        onError: (error: Error) => {
+          sendChunk({ type: 'error', data: error.message });
+          res.end();
+        },
+        onComplete: () => {
+          const assistantMessage: ChatMessage = {
+            id: assistantMessageId,
+            role: 'assistant',
+            content: fullResponse,
+            timestamp: Date.now(),
+          };
+          this.historyService.addMessage(conversation.id, assistantMessage);
 
-        sendChunk({
-          type: 'done',
-          data: JSON.stringify({
-            message: assistantMessage,
-            conversationId: conversation.id,
-          }),
-        });
-        res.end();
+          sendChunk({
+            type: 'done',
+            data: JSON.stringify({
+              message: assistantMessage,
+              conversationId: conversation.id,
+            }),
+          });
+          res.end();
+        },
       },
-    });
+      providerType,
+    );
   }
 
-  async textToSql(schema: string, prompt: string): Promise<string> {
+  async textToSql(schema: string, prompt: string, providerType?: ModelProviderType): Promise<string> {
     const systemPrompt = `You are a SQL expert. Convert natural language queries to SQL based on the provided database schema.
 
 Database Schema:
@@ -95,7 +101,11 @@ Rules:
       },
     ];
 
-    const sql = await this.llmService.chat(messages);
+    const sql = await this.llmService.chat(messages, providerType);
     return sql.trim();
+  }
+
+  getAvailableProviders() {
+    return this.llmService.getAvailableProviders();
   }
 }

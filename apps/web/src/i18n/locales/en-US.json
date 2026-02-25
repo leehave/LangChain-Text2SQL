@@ -1,0 +1,42 @@
+{
+  "app": {
+    "title": "LangChain Chatbot",
+    "description": "Powered by DeepSeek"
+  },
+  "welcome": {
+    "startTitle": "Start a Conversation",
+    "startDescription": "Type a message below to start chatting with AI"
+  },
+  "chat": {
+    "placeholder": "Type your message...",
+    "send": "Send",
+    "newConversation": "New Conversation",
+    "delete": "Delete",
+    "loading": "Loading...",
+    "error": "Error occurred"
+  },
+  "sidebar": {
+    "textToSql": "Text to SQL"
+  },
+  "sqlModal": {
+    "title": "Text to SQL",
+    "schemaLabel": "Database Schema",
+    "schemaPlaceholder": "Enter your database schema (e.g., CREATE TABLE users (id INT, name VARCHAR(255), ...))",
+    "promptLabel": "Natural Language Query",
+    "promptPlaceholder": "Describe what you want to query (e.g., Get all users who signed up last month)",
+    "resultLabel": "Generated SQL",
+    "generate": "Generate SQL",
+    "cancel": "Cancel"
+  },
+  "upload": {
+    "attachment": "Attachment",
+    "uploading": "Uploading...",
+    "remove": "Remove"
+  },
+  "errors": {
+    "uploadFailed": "Upload failed",
+    "sendFailed": "Failed to send message",
+    "deleteFailed": "Failed to delete conversation",
+    "sqlGenerateFailed": "Failed to generate SQL"
+  }
+}

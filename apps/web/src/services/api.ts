@@ -10,14 +10,28 @@ const api = axios.create({
   },
 });
 
+export interface ModelProvider {
+  type: 'deepseek' | 'ollama' | 'openai-compatible';
+  name: string;
+}
+
+export interface ProvidersResponse {
+  providers: ModelProvider[];
+}
+
 export async function sendChatMessage(
   message: string,
   conversationId?: string,
   onToken?: (token: string) => void,
   onComplete?: (conversationId: string, message: { id: string; content: string }) => void,
-  onError?: (error: string) => void
+  onError?: (error: string) => void,
+  provider?: string,
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/api/chat`, {
+  const url = provider 
+    ? `${API_URL}/api/chat?provider=${encodeURIComponent(provider)}`
+    : `${API_URL}/api/chat`;
+  
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -93,12 +107,21 @@ export async function uploadFile(file: File): Promise<UploadResponse> {
   return response.data;
 }
 
-export async function textToSql(schema: string, prompt: string): Promise<string> {
-  const response = await api.post<TextToSqlResponse>('/api/text-to-sql', {
+export async function textToSql(schema: string, prompt: string, provider?: string): Promise<string> {
+  const url = provider 
+    ? `/api/text-to-sql?provider=${encodeURIComponent(provider)}`
+    : '/api/text-to-sql';
+  
+  const response = await api.post<TextToSqlResponse>(url, {
     schema,
     prompt,
   } as TextToSqlRequest);
   return response.data.sql;
+}
+
+export async function getProviders(): Promise<ModelProvider[]> {
+  const response = await api.get<ProvidersResponse>('/api/providers');
+  return response.data.providers;
 }
 
 export default api;

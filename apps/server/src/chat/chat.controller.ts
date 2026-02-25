@@ -8,9 +8,11 @@ import {
   Res,
   HttpStatus,
   HttpException,
+  Query,
 } from '@nestjs/common';
 import { Response } from 'express';
 import type { ChatRequest, TextToSqlRequest } from '@chatbot/shared';
+import type { ModelProviderType } from './interfaces/llm-provider.interface';
 import { ChatService } from './chat.service';
 import { HistoryService } from './history.service';
 
@@ -22,7 +24,11 @@ export class ChatController {
   ) {}
 
   @Post('chat')
-  async chat(@Body() body: ChatRequest, @Res() res: Response) {
+  async chat(
+    @Body() body: ChatRequest,
+    @Res() res: Response,
+    @Query('provider') provider?: ModelProviderType,
+  ) {
     try {
       const { message, conversationId } = body;
 
@@ -39,7 +45,7 @@ export class ChatController {
         conversation = this.historyService.createConversation(message);
       }
 
-      await this.chatService.streamChat(conversation, message, res);
+      await this.chatService.streamChat(conversation, message, res, provider);
     } catch (error) {
       console.error('Chat error:', error);
       throw new HttpException(
@@ -109,7 +115,10 @@ export class ChatController {
   }
 
   @Post('text-to-sql')
-  async textToSql(@Body() body: TextToSqlRequest) {
+  async textToSql(
+    @Body() body: TextToSqlRequest,
+    @Query('provider') provider?: ModelProviderType,
+  ) {
     try {
       const { schema, prompt } = body;
 
@@ -121,12 +130,26 @@ export class ChatController {
         throw new HttpException('Prompt is required', HttpStatus.BAD_REQUEST);
       }
 
-      const sql = await this.chatService.textToSql(schema, prompt);
+      const sql = await this.chatService.textToSql(schema, prompt, provider);
       return { sql };
     } catch (error) {
       console.error('Text to SQL error:', error);
       throw new HttpException(
         error instanceof Error ? error.message : 'Internal server error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('providers')
+  getProviders() {
+    try {
+      const providers = this.chatService.getAvailableProviders();
+      return { providers };
+    } catch (error) {
+      console.error('Get providers error:', error);
+      throw new HttpException(
+        'Failed to get providers',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

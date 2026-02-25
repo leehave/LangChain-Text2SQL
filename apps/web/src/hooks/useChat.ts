@@ -1,8 +1,8 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { generateId } from '@chatbot/shared';
 import type { ChatMessage, Attachment } from '@chatbot/shared';
 import { useChatStore } from '../stores/chatStore';
-import { sendChatMessage, getConversations, deleteConversation as apiDeleteConversation } from '../services/api';
+import { sendChatMessage, getConversations, deleteConversation as apiDeleteConversation, getProviders } from '../services/api';
 
 export function useChat() {
   const {
@@ -10,6 +10,8 @@ export function useChat() {
     currentConversationId,
     isLoading,
     streamingMessage,
+    selectedProvider,
+    availableProviders,
     setConversations,
     addMessage,
     setCurrentConversationId,
@@ -17,6 +19,8 @@ export function useChat() {
     setIsLoading,
     appendToStreamingMessage,
     clearStreamingMessage,
+    setSelectedProvider,
+    setAvailableProviders,
   } = useChatStore();
 
   const currentConversation = conversations.find((c) => c.id === currentConversationId);
@@ -29,6 +33,19 @@ export function useChat() {
       console.error('Failed to load conversations:', error);
     }
   }, [setConversations]);
+
+  const loadProviders = useCallback(async () => {
+    try {
+      const providers = await getProviders();
+      setAvailableProviders(providers);
+    } catch (error) {
+      console.error('Failed to load providers:', error);
+    }
+  }, [setAvailableProviders]);
+
+  useEffect(() => {
+    loadProviders();
+  }, [loadProviders]);
 
   const sendMessage = useCallback(
     async (content: string, attachments?: Attachment[]) => {
@@ -72,7 +89,8 @@ export function useChat() {
           (error) => {
             console.error('Chat error:', error);
             setIsLoading(false);
-          }
+          },
+          selectedProvider || undefined
         );
       } catch (error) {
         console.error('Failed to send message:', error);
@@ -121,10 +139,13 @@ export function useChat() {
     currentConversationId,
     isLoading,
     streamingMessage,
+    selectedProvider,
+    availableProviders,
     loadConversations,
     sendMessage,
     createNewConversation,
     selectConversation,
     deleteConversation,
+    setSelectedProvider,
   };
 }

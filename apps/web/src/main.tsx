@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ConfigProvider, theme } from 'antd';
 import App from './App';
+import './i18n';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -15,5 +16,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     >
       <App />
     </ConfigProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
