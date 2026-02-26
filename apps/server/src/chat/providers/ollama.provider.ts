@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 import type { ChatMessage } from '@chatbot/shared';
 import type { LLMProvider, StreamCallbacks } from '../interfaces/llm-provider.interface';
 
@@ -38,80 +39,69 @@ export class OllamaProvider implements LLMProvider {
 
   async streamChat(messages: ChatMessage[], callbacks: StreamCallbacks): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const response = await axios.post(
+        `${this.baseUrl}/api/chat`,
+        {
           model: this.model,
           messages: this.convertMessages(messages),
           stream: true,
-        }),
-      });
+        },
+        {
+          responseType: 'stream',
+        },
+      );
 
-      if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
-      }
-
-      const reader = response.body!.getReader();
-      const decoder = new TextDecoder();
+      const stream = response.data;
       let buffer = '';
+      let isCompleted = false;
 
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      stream.on('data', (chunk: Buffer) => {
+        buffer += chunk.toString();
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
-
-          for (const line of lines) {
-            if (line.trim()) {
-              try {
-                const data: OllamaStreamResponse = JSON.parse(line);
-                if (data.message?.content) {
-                  callbacks.onToken(data.message.content);
-                }
-                if (data.done) {
-                  callbacks.onComplete();
-                  return;
-                }
-              } catch (e) {
-                console.error('Failed to parse Ollama response:', e);
+        for (const line of lines) {
+          if (line.trim()) {
+            try {
+              const data: OllamaStreamResponse = JSON.parse(line);
+              if (data.message?.content) {
+                callbacks.onToken(data.message.content);
               }
+              if (data.done && !isCompleted) {
+                isCompleted = true;
+                callbacks.onComplete();
+                return;
+              }
+            } catch (e) {
+              console.error('Failed to parse Ollama response:', e);
             }
           }
         }
-      } finally {
-        reader.releaseLock();
-      }
+      });
 
-      callbacks.onComplete();
+      stream.on('end', () => {
+        if (!isCompleted) {
+          isCompleted = true;
+          callbacks.onComplete();
+        }
+      });
+
+      stream.on('error', (error: Error) => {
+        callbacks.onError(error);
+      });
     } catch (error) {
       callbacks.onError(error instanceof Error ? error : new Error(String(error)));
     }
   }
 
   async chat(messages: ChatMessage[]): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: this.model,
-        messages: this.convertMessages(messages),
-        stream: false,
-      }),
+    const response = await axios.post(`${this.baseUrl}/api/chat`, {
+      model: this.model,
+      messages: this.convertMessages(messages),
+      stream: false,
     });
 
-    if (!response.ok) {
-      throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json() as { message?: { content?: string } };
+    const data = response.data as { message?: { content?: string } };
     return data.message?.content || '';
   }
 }

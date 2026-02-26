@@ -216,6 +216,16 @@ function ChatInterface() {
           ) : (
             <div style={{ flex: 1, overflow: 'auto', marginBottom: 16 }}>
               <Bubble.List
+                roles={{
+                  user: {
+                    placement: 'end',
+                    variant: 'shadow',
+                  },
+                  assistant: {
+                    placement: 'start',
+                    variant: 'filled',
+                  },
+                }}
                 items={[
                   ...messages.map((msg) => ({
                     key: msg.id,

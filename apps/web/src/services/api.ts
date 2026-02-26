@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Conversation, UploadResponse, ConversationsResponse, HistoryResponse, TextToSqlRequest, TextToSqlResponse } from '@chatbot/shared';
+import type { Conversation, ChatMessage, UploadResponse, ConversationsResponse, HistoryResponse, TextToSqlRequest, TextToSqlResponse } from '@chatbot/shared';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -23,7 +23,7 @@ export async function sendChatMessage(
   message: string,
   conversationId?: string,
   onToken?: (token: string) => void,
-  onComplete?: (conversationId: string, message: { id: string; content: string }) => void,
+  onComplete?: (conversationId: string, message: ChatMessage) => void,
   onError?: (error: string) => void,
   provider?: string,
 ): Promise<void> {

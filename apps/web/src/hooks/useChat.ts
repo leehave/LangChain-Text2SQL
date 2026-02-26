@@ -1,8 +1,8 @@
 import { useCallback, useEffect } from 'react';
 import { generateId } from '@chatbot/shared';
-import type { ChatMessage, Attachment } from '@chatbot/shared';
+import type { ChatMessage, Attachment, Conversation } from '@chatbot/shared';
 import { useChatStore } from '../stores/chatStore';
-import { sendChatMessage, getConversations, deleteConversation as apiDeleteConversation, getProviders } from '../services/api';
+import { sendChatMessage, getConversations, deleteConversation as apiDeleteConversation, getProviders, getConversation } from '../services/api';
 
 export function useChat() {
   const {
@@ -14,6 +14,7 @@ export function useChat() {
     availableProviders,
     setConversations,
     addMessage,
+    addConversation,
     setCurrentConversationId,
     deleteConversation: removeConversation,
     setIsLoading,
@@ -59,6 +60,8 @@ export function useChat() {
         attachments,
       };
 
+      // For existing conversations, add user message immediately
+      // For new conversations, user message will be added when we fetch the conversation from server
       if (currentConversationId) {
         addMessage(currentConversationId, userMessage);
       }
@@ -73,16 +76,46 @@ export function useChat() {
           (token) => {
             appendToStreamingMessage(token);
           },
-          (convId, message) => {
+          async (convId, message) => {
+            // Check if conversation exists in local state
+            const conversationExists = conversations.some((c) => c.id === convId);
+            
+            if (!conversationExists) {
+              // Fetch the new conversation from server
+              try {
+                const conversation = await getConversation(convId);
+                addConversation(conversation);
+              } catch (error) {
+                console.error('Failed to fetch new conversation:', error);
+                // Fallback: create a minimal conversation object
+                const newConversation: Conversation = {
+                  id: convId,
+                  title: message.content.slice(0, 50) || 'New Conversation',
+                  messages: [message],
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                };
+                addConversation(newConversation);
+              }
+            } else {
+              // For existing conversations, refresh from server to get the updated messages
+              // Backend has already added the message, we just need to sync
+              try {
+                const conversation = await getConversation(convId);
+                // Update the conversation in the list
+                const updatedConversations = conversations.map((c) =>
+                  c.id === convId ? conversation : c
+                );
+                setConversations(updatedConversations);
+              } catch (error) {
+                console.error('Failed to refresh conversation:', error);
+              }
+            }
+            
             if (!currentConversationId) {
               setCurrentConversationId(convId);
             }
-            addMessage(convId, {
-              id: message.id,
-              role: 'assistant',
-              content: message.content,
-              timestamp: Date.now(),
-            });
+            
             clearStreamingMessage();
             setIsLoading(false);
           },
@@ -100,7 +133,9 @@ export function useChat() {
     [
       currentConversationId,
       isLoading,
-      addMessage,
+      conversations,
+      addConversation,
+      setConversations,
       setCurrentConversationId,
       setIsLoading,
       clearStreamingMessage,
