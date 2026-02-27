@@ -16,11 +16,14 @@ export class DeepSeekProvider implements LLMProvider {
       throw new Error('DEEPSEEK_API_KEY environment variable is required');
     }
 
+    const temperature = parseFloat(this.configService.get<string>('DEEPSEEK_TEMPERATURE') || '0.7');
+    const maxTokens = parseInt(this.configService.get<string>('DEEPSEEK_MAX_TOKENS') || '4096', 10);
+
     this.model = new ChatDeepSeek({
       apiKey,
       model: this.configService.get<string>('DEEPSEEK_MODEL', 'deepseek-chat'),
-      temperature: this.configService.get<number>('DEEPSEEK_TEMPERATURE', 0.7),
-      maxTokens: this.configService.get<number>('DEEPSEEK_MAX_TOKENS', 4096),
+      temperature: isNaN(temperature) ? 0.7 : temperature,
+      maxTokens: isNaN(maxTokens) ? 4096 : maxTokens,
       streaming: true,
     });
   }
