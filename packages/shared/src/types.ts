@@ -62,3 +62,39 @@ export interface TextToSqlRequest {
 export interface TextToSqlResponse {
   sql: string;
 }
+
+// Skill System Types
+export interface SkillParameter {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  required: boolean;
+  description?: string;
+  defaultValue?: any;
+}
+
+export interface SkillDefinition {
+  id: string;
+  name: string;
+  description: string;
+  parameters: SkillParameter[];
+  category: string;
+  version: string;
+  author?: string;
+}
+
+export interface SkillExecutionResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface SkillExecutionRequest {
+  skillId: string;
+  parameters: Record<string, any>;
+}
+
+export interface SkillExecutionResponse {
+  result: SkillExecutionResult;
+  executionTime: number;
+}
